@@ -7,41 +7,41 @@ import win32com.client as win32
 input_dir = "C:/Users/iamyo/Desktop/attachments"
 output_dir = "C:/Users/iamyo/Desktop/attachments/done"
 
-# Make sure the output directory exists
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+# Ensure the output directory exists
+os.makedirs(output_dir, exist_ok=True)
 
 # Iterate through files
 for filename in os.listdir(input_dir):
     input_path = os.path.join(input_dir, filename)
-    output_path = os.path.join(output_dir, filename.replace(os.path.splitext(filename)[1], ".pdf"))
+    output_file = filename.replace(os.path.splitext(filename)[1], ".pdf")
+    output_path = os.path.join(output_dir, output_file)
 
     # Normalize paths
     input_path = os.path.abspath(input_path)
     output_path = os.path.abspath(output_path)
 
-    if filename.endswith(".docx"):  # Handle .docx files
-        try:
-            docx2pdf.convert(input_path, output_path)
-            print(f"{filename} converted to PDF.")
-        except Exception as e:
-            print(f"Failed to convert {filename}: {e}")
+    try:
+        if filename.endswith(".docx"):
+            # Convert .docx files (docx2pdf only accepts input & output directories)
+            docx2pdf.convert(input_path, output_dir)
+            print(f"✔ {filename} converted to PDF.")
 
-    elif filename.endswith(".doc"):  # Handle .doc files
-        pythoncom.CoInitialize()  # Initialize the COM library
-        try:
-            word = win32.DispatchEx('Word.Application')  # Use DispatchEx to get a new Word instance each time
+        elif filename.endswith(".doc"):
+            pythoncom.CoInitialize()
+            word = win32.DispatchEx('Word.Application')
             word.Visible = False
 
-            # Open the .doc file and save as PDF
             doc = word.Documents.Open(input_path)
             doc.SaveAs(output_path, FileFormat=17)  # Save as PDF
             doc.Close()
-            print(f"{filename} converted to PDF.")
-        except Exception as e:
-            print(f"Failed to convert {filename}: {e}")
-        finally:
-            try:
-                word.Quit()  # Ensure Word is closed even if an error occurs
-            except Exception as quit_error:
-                print(f"Failed to close Word for {filename}: {quit_error}")
+            print(f"✔ {filename} converted to PDF.")
+
+    except Exception as e:
+        print(f"❌ Failed to convert {filename}: {e}")
+
+    finally:
+        try:
+            if 'word' in locals():  # Ensure Word is closed if initialized
+                word.Quit()
+        except Exception as quit_error:
+            print(f"⚠ Failed to close Word for {filename}: {quit_error}")
